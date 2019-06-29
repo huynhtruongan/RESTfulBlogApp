@@ -1,12 +1,17 @@
-const   bodyParser  = require('body-parser'),
-        mongoose    = require('mongoose'),
-        express     = require('express'),
-        app         = express();
+const   bodyParser      = require('body-parser'),
+        methodOverride  = require('method-override'),
+        expressSanitizer= require('express-sanitizer'),
+        mongoose        = require('mongoose'),
+        express         = require('express'),
+        app             = express();
     //  APP CONFIG
 mongoose.connect('mongodb://localhost/RESTful_Blog_App', {useNewUrlParser: true})
 app.set('view engine', 'ejs')
+mongoose.set('useFindAndModify', false)
 app.use(express.static('public'))
 app.use(bodyParser.urlencoded({extended: true}))
+app.use(expressSanitizer())
+app.use(methodOverride('_method'))
     // MONGOOSE/MODEL CONFIG
 let blogSchema = new mongoose.Schema({
     title : String,
@@ -24,10 +29,64 @@ const Blog = mongoose.model('Blog', blogSchema);
 //     else console.log(blog);  
 // })
     // RESTFUL ROUTES
+    // INDEX ROUTE
 app.get('/blogs', (req, res) => {
     Blog.find({},(err, allBlog)=> {
         if(err) console.log(err)
         else res.render('index', {blog: allBlog})       
     })
+})
+    // NEW ROUTE
+app.get('/blogs/new', (req, res) =>{
+    res.render('new')
+})
+    // CREATE ROUTE
+app.post('/blogs', (req, res)=>{
+    // create blog
+    console.log(req.body);
+    
+    req.body.blog.body = req.sanitize(req.body.blog.body)
+    console.log('==============');
+    console.log(req.body);
+    
+    
+    Blog.create(req.body.blog, (err, newBlog)=>{
+        if(err){
+            res.render('new')
+        } else {
+            // redirect to the index
+            res.redirect('/blogs')
+        }
+    })
+    // redirect
+})
+    // SHOW ROUTE
+app.get('/blogs/:id', (req, res)=>{
+    Blog.findById(req.params.id, (err, foundBlog)=>{
+        if(err) res.redirect('/blogs')
+        else res.render('show', {blog: foundBlog})
+    })
+})
+    // EDIT ROUTE
+app.get('/blogs/:id/edit', (req, res)=>{
+    Blog.findById(req.params.id, (err, foundBlog)=>{
+        if(err) res.redirect('/blogs')
+        else res.render('edit', {blog: foundBlog})
+    })
+})
+    // UPDATE ROUTE
+app.put('/blogs/:id', (req, res)=>{
+    Blog.findByIdAndUpdate(req.params.id, req.body.blog, (err, updateBlog)=>{
+        if(err) res.redirect('/blogs')
+        else res.redirect('/blogs/'+ req.params.id)
+    })
+})
+app.delete('/blogs/:id', (req, res)=>{
+    //destroy blog
+    Blog.findByIdAndRemove(req.params.id, (err)=>{
+        if(err) res.redirect('/blogs')
+        else res.redirect('blogs')
+    })
+    //redirect
 })
 app.listen(3000, ()=> console.log('server is running'))

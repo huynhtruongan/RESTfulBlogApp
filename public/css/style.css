@@ -7,3 +7,9 @@ i.icon {
 #delete {
     display: inline;
 }
+i.icon.chevron.right::before{
+    vertical-align: middle;
+}
+i.icon.chevron.right{
+    vertical-align: middle;
+}
